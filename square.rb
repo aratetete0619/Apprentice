@@ -1,6 +1,6 @@
 def square(squared_numbers)
   squared_numbers.each do |number|
-    puts number * number
+    puts number **
   end
 end
 
