@@ -18,11 +18,19 @@ class Blackjack
 
     # 引いたカードの数字
     @number = 0
-
+    @result_of_dealing_cards = {}
   end
 
 
   def start
+    puts "対戦したいCPUの数(0~2人)を指定してください"
+    number_of_opponents = gets.chomp.to_i
+    i = 0
+    cpu_players = []
+    number_of_opponents.times do |i|
+      i += 1
+      cpu_players << Cpu.new(i)
+    end
 
     # プレイヤーとディーラーを作成
     player = Player.new
@@ -39,6 +47,12 @@ class Blackjack
       # 引いたカードをプレイヤークラスのデータとして保存
       player.cards(@type, @number)
       puts "#{player.name}の引いたカードは#{@type}の#{@number}です"
+
+      # CPUへのカードを配布
+      cpu_players.each do |cpu_player|
+        dealing_cards
+        cpu_player.cards(@type, @number)
+      end
 
     end
 
@@ -71,13 +85,37 @@ class Blackjack
         player.cards(@type, @number)
         puts "あなたの引いたカードは#{@type}の#{@number}です。"
 
-        # 合計が21を超えたら終了
-        if player.having_points >= 21
+        # 合計が21を超えたらループを抜けて終了
+        if player.having_points > 21
           puts "あなたの現在の得点は#{player.having_points}です。"
-          break
+          puts "あなたの負けです。"
+          exit
         end
       else # プレイヤーがNOと答えた場合
         break
+      end
+    end
+
+    @result_of_dealing_cards[player.name] = player.having_points
+
+    # CPUがカードを引く回数を考慮した繰り返し処理
+    cpu_players.each do |cpu_player|
+      if cpu_player.having_points < 21
+        puts "#{cpu_player.name}のターンです。もう少しお待ちください。"
+        sleep(5)
+        rand(0..2).times do
+          dealing_cards
+          cpu_player.cards(@type, @number)
+          puts "#{cpu_player.name}の引いたカードは#{@type}の#{@number}です。"
+
+          # 合計が21を超えたらループを抜けて終了
+          break if cpu_player.having_points > 21
+        end
+        if cpu_player.having_points <= 21
+          @result_of_dealing_cards[cpu_player.name] = cpu_player.having_points
+        else
+          @result_of_dealing_cards.delete(cpu_player.name)
+        end
       end
     end
 
@@ -85,15 +123,54 @@ class Blackjack
     puts "ディーラーの引いた2枚目のカードは#{type_at_second_by_dealer}の#{number_at_second_by_dealer}でした。"
     puts "ディーラーの現在の得点は#{dealer.having_points}です。"
 
+    # ディーラーは17以上になるまでカードを引く
+    if dealer.having_points < 17
+      15.times do
+        dealing_cards
+        dealer.cards(@type, @number)
+        puts "ディーラーの引いたカードは#{@type}の#{@number}です。"
 
-    # 勝敗結果
-    if player.having_points > dealer.having_points
-      puts "あなたの勝ちです。"
-    elsif player.having_points < dealer.having_points
-      puts "あなたの負けです。"
-    else
-      puts "引き分けです。"
+        # 合計が21を超えたらゲーム終了
+        if dealer.having_points > 21
+          puts "プレイヤー全員の勝ちです"
+          exit
+        end
+
+        break if dealer.having_points >= 17
+      end
     end
+    @result_of_dealing_cards[dealer.name] = dealer.having_points
+
+
+
+    # ## ディーラーが勝ち、プレイヤー全員が負けの場合
+    p @result_of_dealing_cards
+    # dealer_winner = @result_of_dealing_cards.select{ |key, value| value < @result_of_dealing_cards[dealer.name]}
+    # puts "#{dealer.name}の勝ちです。" if d.empty?
+
+    # ## プレイヤーに勝者がいる場合
+    winners = @result_of_dealing_cards.select{ |key, value| value > @result_of_dealing_cards[dealer.name] }
+    # puts "#{winners.keys.join("と")}の勝ちです。" unless winners.empty?
+    # puts "#{player.name}の負けです。" unless winners.keys.include?(player.name)
+
+    # # プレイヤーに引き分けがいる場合
+    drawers = @result_of_dealing_cards.select{ |key, value| value == @result_of_dealing_cards[dealer.name] }
+    drawers.delete(dealer.name)
+    # puts "#{drawers.keys.join("と")}は引き分けです。" if drawers.keys.any?
+    binding.break
+
+    if winners.any?
+      puts "#{winners.keys.join("と")}の勝ちです。"
+      puts "#{player.name}の負けです。" unless winners.keys.include?(player.name) || drawers.keys.include?(player.name)
+      puts "#{player.name}は引き分けです。" if drawers.keys.include?(player.name)
+    elsif drawers.any?
+      puts "#{drawers.keys.join("と")}は引き分けです。" if drawers.keys.any?
+      puts "#{player.name}の負けです。" unless winners.keys.include?(player.name)
+    elsif winners.empty? && drawers.empty?
+      puts "#{dealer.name}の勝ちです。"
+    end
+    binding.break
+
 
     puts "ブラックジャックを終了します"
 
@@ -147,6 +224,7 @@ class Person
   def having_points
     points = 0
 
+    # A、J、Q、Kなどの特殊点数のための場合分け
     @cards.each do |card|
       card.each do |type, num|
         case num
@@ -194,5 +272,16 @@ class Player < Person
   end
 end
 
+class Cpu < Person
+
+  def initialize(num)
+    @name = "CPU#{num}"
+  end
+
+  def cards(type, number)
+    super
+  end
+end
+
 blackjack = Blackjack.new
-blackjack.start
+results = blackjack.start
