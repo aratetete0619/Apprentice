@@ -4,6 +4,9 @@ class Blackjack
 
   def initialize
 
+    # カードオブジェクトの生成
+    @cards = Card.new
+
     # 引いたカードの種類
     @type = ""
 
@@ -16,8 +19,9 @@ class Blackjack
     # 掛け金に関する特殊ルール
     @doubling =[]
     @splitting = []
-    @surrender = []
 
+    # 掛け金の額
+    @betting_chips = 0
 
   end
 
@@ -38,64 +42,133 @@ class Blackjack
     2.times do
 
       ### プレイヤーへのカードを配布
-      dealing_cards
-      player.drawing_cards(@type, @number)
-      puts "#{player.name}の引いたカードは#{@type}の#{@number}です"
+      player.drawing_cards(@cards.drew)
+      puts "#{player.name}の引いたカードは#{@cards.type}の#{@cards.number}です"
 
 
       ### CPUへのカードを配布
       cpu_players.each do |cpu_player|
-        dealing_cards
-        cpu_player.drawing_cards(@type, @number)
+        cpu_player.drawing_cards(@cards.drew)
       end
 
     end
 
-    ### プレイヤーが特殊ルールを選択できるか判定
+    ### いくら掛けるかをプレイヤーに聞く
+    puts "掛け金を設定してください"
+    puts "現在の#{player.name}の所持チップ数は#{player.having_chips}です。"
+    @betting_chips = gets.chomp.to_i
+    player.decrease_chips(@betting_chips)
+
+    ### プレイヤーが特殊ルールを選択するか判定
     loop do
-      puts "特殊ルールを選択しますか？(1:ダブリング, 2:スプリット, 3:サレンダー)"
-      puts "現在の#{player.name}の所持チップ数は#{player.having_chips}です。"
+      puts "特殊ルールを選択しますか？(1:ダブリング, 2:スプリット, 3:サレンダー) 所持チップ数: #{player.having_chips}, 掛け金: #{@betting_chips}"
       number_of_rule = gets.chomp.to_i
-      select_special_rule(number_of_rule, player)
+
+      ## ダブリングが選択された場合
+      if number_of_rule == 1
+        doubling(player)
+        puts "ダブリングを選択しました。#{player.having_chips}枚まで上乗せすることができます。"
+        added_betting_chips = gets.chomp.to_i
+
+        if added_betting_chips > player.having_chips # プレイヤーが最初の賭け金を超えて設定した場合はエラーを出す
+          puts "所持チップ数を超えて設定することはできません。"
+          redo
+        end
+
+        @betting_chips += added_betting_chips # 掛け金を上乗せする
+
+      ## スプリットが選択された場合
+      elsif number_of_rule == 2
+        if player.having_cards.map(&:values).flatten.uniq.length == 1 #2枚のカードの値が同様であれば、uniqで重複を削除した配列の長さは1になる
+          split(player)
+          puts "スプリットを選択しました。掛け金は2倍され#{@betting_chips}枚になります。"
+        else
+          raise("あなたの手札ではスプリットが出来ません。")
+          redo
+        end
+
+      ## サレンダーが選択された場合
+      elsif number_of_rule == 3
+        puts "サレンダーを選択しました。掛け金の半分を返却します。"
+        puts "返却されるチップ数は#{@betting_chips / 2}です。"
+        exit
+      end
 
       break if (1..3).include?(number_of_rule)
     end
 
-    ### ディーラーへのカードを配布
-    dealing_cards
-
     ### 引いたカードをディーラークラスのデータとして保存(以下流れは同様)
-    dealer.drawing_cards(@type, @number)
-    puts "#{dealer.name}の引いたカードは#{@type}の#{@number}です"
+    dealer.drawing_cards(@card.drew)
+    puts "#{dealer.name}の引いたカードは#{@cards.type}の#{@cards.number}です"
 
-    dealing_cards
-    ### ディーラーの2枚目のカードはゲーム投了時に表示するために保存
-    type_at_second_by_dealer = @type
-    number_at_second_by_dealer = @number
-
-    dealer.drawing_cards(@type, @number)
+    card_at_second_by_dealer = @card.drew
+    dealer.drawing_cards(card_at_second_by_dealer)
     puts "#{dealer.name}の引いた2枚目のカードはわかりません。"
+
+    ### ディーラーの2枚目のカードはゲーム投了時に表示するために保存
+    type_at_second_by_dealer = card_at_second_by_dealer.type
+    number_at_second_by_dealer = card_at_second_by_dealer.number
+
+
 
     ### プレイヤーがカードを引くか選択肢を与える
     loop do
-      puts "あなたの現在の得点は#{player.having_points}です。カードを引きますか？（Y/N）"
+      puts "#{player.name}の現在の得点は#{player.having_points}点です。カードを引きますか？（Y/N）"
       answer = gets.chomp
 
       if answer == "Y" # プレイヤーがYesと答えた場合
-        dealing_cards
-        player.cards(@type, @number)
-        puts "あなたの引いたカードは#{@type}の#{@number}です。"
+        player.drawing_cards(@cards.drew)
+        puts "#{player.name}の引いたカードは#{@cards.type}の#{@cards.number}です。"
+
+        if @doubling.include?(player.name) # プレイヤーがダブリングしている場合は追加カードは一回しか引けない
+          puts "#{player.name}はダブリングしているためここで終了します。"
+          break
+        end
+
+        if @splitting.include?(player.name) && player.having_points == 11  # プレイヤーがスプリットしているかつAのスプリットの場合は追加カードは一回しか引けない
+          puts "#{player.name}はAのスプリットをしているためここで終了します。"
+          break
+        end
+
+        if @splitting.include?(player.name) && i.even? # プレイヤーがスプリットしている場合は2枚目の手札を引く
+          puts "#{player.name}はスプリットをしているため2枚目の手札を引くことができます。"
+          puts "2枚目の#{player.name}の現在の得点は#{player.having_points(player.cards_doublet)}点です。カードを引きますか？（Y/N）"
+          answer = gets.chomp
+          if answer == "Y" # プレイヤーがYesと答えた場合
+            player.drawing_cards_in_split(@cards.drew)
+            puts "#{player.name}の引いたカードは#{@cards.type}の#{@cards.number}です。"
+            redo
+          end
+        end
+
 
         if player.having_points > 21 # 合計が21を超えたらループを抜けて終了
-          puts "あなたの現在の得点は#{player.having_points}です。"
-          puts "あなたの負けです。"
+          puts "#{player.name}の現在の得点は#{player.cards1}です。"
+          puts "#{player.name}の負けです。"
           exit
         end
+
       else # プレイヤーがNOと答えた場合
         break
       end
     end
-    @result_of_dealing_cards[player.name] = player.having_points
+
+    ### プレイヤーがスプリットしている場合は1枚目か2枚目のどちらかを選択する
+    loop do
+      if @splitting.include?(player.name)
+        puts "#{player.name}の現在の得点は1枚目が#{player.having_points}点、2枚目が#{player.having_points(player.cards_doublet)}点です。"
+        puts "1枚目か2枚目のどちらかを選んでください。(1か2を入力してください)"
+        answer = gets.chomp.to_i
+        redo if answer != 1 && answer != 2
+        player_having_points = player.having_points(player.cards_doublet) if answer == 2
+        player_having_points = player.having_points if answer == 1
+        break
+      else
+        player_having_points = player.having_points
+        break
+      end
+    end
+    @result_of_dealing_cards[player.name] = player_having_points
 
 
     ### CPUがカードを引くか選択肢を与える
@@ -104,9 +177,8 @@ class Blackjack
         puts "#{cpu_player.name}のターンです。もう少しお待ちください。"
         sleep(3)
         rand(0..2).times do
-          dealing_cards
-          cpu_player.drawing_cards(@type, @number)
-          puts "#{cpu_player.name}の引いたカードは#{@type}の#{@number}です。"
+          cpu_player.drawing_cards(@cards.drew)
+          puts "#{cpu_player.name}の引いたカードは#{@cards.type}の#{@cards.number}です。"
 
 
           break if cpu_player.having_points > 21  # 合計が21を超えたらループを抜けて終了
@@ -125,10 +197,9 @@ class Blackjack
 
     ### ディーラーがカードを引くか選択肢を与える
     if @dealer.having_points < 17
-      15.times do
-        dealing_cards
-        @dealer.cards(@type, @number)
-        puts "ディーラーの引いたカードは#{@type}の#{@number}です。"
+      loop do
+        @dealer.drawing_cards(@cards.drew)
+        puts "ディーラーの引いたカードは#{@cards.type}の#{@cards.number}です。"
 
         if @dealer.having_points > 21  # 合計が21を超えたらゲーム終了
           puts "プレイヤー全員の勝ちです"
@@ -154,22 +225,21 @@ class Blackjack
       puts "#{dealer.name}の勝ちです。"
     end
 
+    ### 掛け金の変動を示す
+    if winners.keys.include?(player.name)
+      player.increase_chips(@betting_money)
+    elsif drawers.keys.include?(player.name)
+      player.increase_chips(0)
+    else
+      player.decrease_chips(@betting_money)
+    end
+
+    puts "#{player.name}の所持金は#{player.having_chips}円です。"
     puts "ブラックジャックを終了します"
 
   end
 
   ### ここからはゲーム内のアクションとしてメソッドを定義 ###
-
-  ### カードが配布された時のメソッド
-  def dealing_cards
-    cards = Card.new # カードオブジェクトの生成
-
-    card = cards.drew  # ランダムにカードを引く
-
-    @type = card.keys.flatten.sample  # カードの種類を保存
-
-    @number = card.values.flatten.sample # カードの数字を保存
-  end
 
 
   ### プレイヤーに勝者がいる場合(ディーラーよりも点数が高い)
@@ -179,24 +249,9 @@ class Blackjack
 
   ### プレイヤーに引き分けがいる場合(ディーラーと同点)
   def drawers(dealer)
-    @result_of_dealing_cards.select{ |key, value| value == @result_of_dealing_cards[dealer.name] }.delete(@dealer.name) # ディーラーに対しての比較なので要素からディーラーは削除
+    return @result_of_dealing_cards.select{ |key, value| value == @result_of_dealing_cards[dealer.name] }.delete(@dealer.name) # ディーラーに対しての比較なので要素からディーラーは削除
   end
 
-
-  ### 特殊ルールが選択された時のメソッド
-  def select_special_rule(num, player)
-    if number_of_rule == 1  # ダブリングが選択された場合
-      doubling(player)
-    elsif number_of_rule == 2  # スプリットが選択された場合
-      if player.having_cards.map(&:values).flatten.uniq.length == 1 #2枚のカードの値が同様であれば、uniqで重複を削除した配列の長さは1になる
-        split(player)
-      else
-        raise("あなたの手札ではスプリットが出来ません。")
-      end
-    elsif number_of_rule == 3 # サレンダーが選択された場合
-      surrender(player)
-    end
-  end
 
   # ダブリングが選択された時のメソッド
   def doubling(player)
@@ -206,12 +261,12 @@ class Blackjack
   # スプリットが選択された時のメソッド
   def split(player)
     @split << player.name
+    @betting_chips = @betting_chips * 2
+    having_cards1 = player.having_cards[0]
+    having_cards2 = player.having_cards[1]
+    player.drawing_cards_in_split(having_cards1, having_cards2)
   end
 
-  # サレンダーが選択された時のメソッド
-  def surrender(player)
-    @surrender << player.name
-  end
 
 
 end
@@ -219,8 +274,7 @@ end
 # 継承元のクラス(クラス名がしっくりこないので変えた方がいいかもしれない、、、)
 # 継承先は、ディーラー、プレイヤー、CPUを想定
 class Person
-  attr_accessor :name
-  attr_reader :chips # チップが不正に変更されるのを防ぐため読み取り専用とする
+  attr_accessor :name, :chip, :cards_doublet
 
   def initialize(num=nil)
     @chip = Chip.new
@@ -232,49 +286,63 @@ class Person
 
 
   # 引いたカードのデータを保存
-  def drawing_cards(type, number)
-
-    # カードの種類と数字をセットにするためにハッシュ化
-    card = {type => number}
+  def drawing_cards(dealing_card)
 
     # @cardsがnilであれば空の配列を作る
     @cards ||= []
 
     # @cardsにカードを追加
-    @cards << card
+    @cards << dealing_card
 
   end
+
+  def drawing_cards_in_split(dealing_card1, dealing_card2 = nil)
+    @cards_doublet ||= []
+    @cards ||= []
+    @cards_doublet << dealing_card1
+    @cards << dealing_card2
+  end
+
 
   # 持っているカードが読み取れるメソッド
   def having_cards
     @cards
   end
 
+
   # 所持しているカードからポイントを算出
-  def having_points
+  def having_points(cards = @cards)
     points = 0
 
     # A、J、Q、Kなどの特殊点数のための場合分け
-    @cards.each do |card|
-      card.each do |type, num|
-        case num
-        when :A
-          if points <= 10
-            points += 11
+    cards.each do |card|
+        card.each do |type, num|
+          case num
+          when :A
+            if points <= 10
+              points += 11
+            else
+              points += 1
+            end
+          when :J, :Q, :K
+            points += 10
           else
-            points += 1
+            points += num
           end
-        when :J, :Q, :K
-          points += 10
-        else
-          points += num
         end
       end
-    end
-
     return points
   end
 
+  # プレイヤーの所持チップを増やす
+  def increase_chips(bet)
+    having_chips + bet
+  end
+
+  # プレイヤーの所持チップを減らす
+  def decrease_chips(bet)
+    having_chips - bet
+  end
 
 end
 
@@ -286,9 +354,9 @@ class Dealer < Person
 end
 
 class Player < Person
-  def initialize
+  def initialize(name = nil)
     super
-    @name = "あなた"
+    @name = name ? name : " あなた"
   end
 end
 
@@ -309,25 +377,29 @@ class Cpu < Person
 end
 
 class Card
+  attr_accessor :type, :number
   attr_reader :number_of_cards, :cards
 
-   def initialize
+  def initialize
 
-    # カードの総数
-    @number_of_cards = 52
+  # カードの総数
+  @number_of_cards = 52
 
-    # カードの種類
-    @cards = [{"ハート" => [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]},
-              {"ダイヤ" =>  [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]},
-              {"スペード" =>  [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]},
-              {"クローバー" =>  [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]}]
+  # カードの種類
+  @cards = [{"ハート" => [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]},
+            {"ダイヤ" =>  [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]},
+            {"スペード" =>  [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]},
+            {"クローバー" =>  [:A,2,3,4,5,6,7,8,9,10,:J,:Q,:K]}]
 
-   end
+  end
 
-   def drew
+  def drew
     @cards.sample
     @number_of_cards -= 1 # カードの総数から1枚引いたことにする
-   end
+    @type = card.keys.flatten.sample  # カードの種類を保存
+    @number = card.values.flatten.sample # カードの数字を保存
+    return {@type => @number} # カードの種類と数字をセットにするためにハッシュ化
+  end
 end
 
 class Chip
