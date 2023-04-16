@@ -71,7 +71,7 @@ class Blackjack
         puts "ダブリングを選択しました。#{@betting_chips}枚まで上乗せすることができます。"
         added_betting_chips = gets.chomp.to_i
 
-        if added_betting_chips > player.having_chips # プレイヤーが最初の賭け金を超えて設定した場合はエラーを出す
+        if added_betting_chips > @betting_chips # プレイヤーが最初の賭け金を超えて設定した場合はエラーを出す
           puts '所持チップ数を超えて設定することはできません。'
           redo
         end
