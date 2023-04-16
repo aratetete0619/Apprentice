@@ -1,8 +1,7 @@
 class VendingMachine
-
   def initialize(manufacturer = nil)
     @manufacturer = manufacturer
-    @drinks = {cider: 100, cola: 150, hot_cup_coffee: 100, ice_cup_coffee: 100, potato_chips: 100}
+    @drinks = { cider: 100, cola: 150, hot_cup_coffee: 100, ice_cup_coffee: 100, potato_chips: 100 }
     @coin = 0
     @cups = 100
     @having_cup = false
@@ -11,13 +10,15 @@ class VendingMachine
   def press_button(drink)
     ## ドリンク分のお金を持っているか判定
     return nil unless @coin >= @drinks[drink.name]
+
     ## ドリンクが在庫にあることとカップを持っているかを判定
     if drink.name == :hot_cup_coffee || drink.name == :ice_cup_coffee
       return nil unless @having_cup && @cups > 0
+
       @having_cup = false
     end
     @coin -= @drinks[drink.name]
-    return drink.name.to_s
+    drink.name.to_s
   end
 
   def deposit_coin(coin)
@@ -49,7 +50,6 @@ end
 class Drink < Item
 end
 
-
 class CupCoffee < Item
   def initialize(item)
     super item
@@ -63,7 +63,6 @@ class Snack < Item
     @item = :potato_chips
   end
 end
-
 
 hot_cup_coffee = CupCoffee.new('hot')
 cider = Drink.new('cider')

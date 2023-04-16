@@ -6,5 +6,4 @@ def sum(x, y)
   puts sum
 end
 
-
-sum(10 ,80)
+sum(10, 80)

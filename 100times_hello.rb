@@ -1,6 +1,6 @@
 def hello
   100.times do
-    puts "こんにちは"
+    puts 'こんにちは'
   end
 end
 

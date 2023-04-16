@@ -4,4 +4,4 @@ def print_capitals(capitals)
   end
 end
 
-print_capitals({"日本" => "東京", "アメリカ" => "ワシントンD.C."})
+print_capitals({ '日本' => '東京', 'アメリカ' => 'ワシントンD.C.' })

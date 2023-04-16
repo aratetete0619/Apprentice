@@ -1,5 +1,5 @@
 def hello
-  return "Hello World"
+  'Hello World'
 end
 
 puts hello

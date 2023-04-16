@@ -4,4 +4,4 @@ def print_namas(names)
   end
 end
 
-print_namas(["上田", "田仲", "堀田"])
+print_namas(%w[上田 田仲 堀田])
