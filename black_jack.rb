@@ -26,7 +26,6 @@ class Blackjack
     ### CPUの数を設定
     puts '対戦したいCPUの数(0~2人)を指定してください'
     number_of_opponents = gets.chomp.to_i
-    i = 0
     cpu_players = []
     number_of_opponents.times do |i|
       i += 1
@@ -71,7 +70,7 @@ class Blackjack
         puts "ダブリングを選択しました。#{@betting_chips}枚まで上乗せすることができます。"
         added_betting_chips = gets.chomp.to_i
 
-        if added_betting_chips > player.having_chips # プレイヤーが最初の賭け金を超えて設定した場合はエラーを出す
+        if added_betting_chips > @betting_chips # プレイヤーが最初の賭け金を超えて設定した場合はエラーを出す
           puts '所持チップ数を超えて設定することはできません。'
           redo
         end
@@ -141,7 +140,6 @@ class Blackjack
       end
 
       if @splitting.include?(player.name) # プレイヤーがスプリットしている場合は2枚目の手札を引く
-        binding.break
         puts "#{player.name}はスプリットをしているため2枚目の手札を引くことができます。"
         puts "2枚目の#{player.name}の現在の得点は#{player.having_points(player.cards_doublet2)}点です。カードを引きますか？（Y/N）"
         answer = gets.chomp
@@ -150,7 +148,6 @@ class Blackjack
         player.drawing_cards_in_split( nil, @cards.drew)
         puts "#{player.name}の引いたカードは#{@cards.type}の#{@cards.number}です。"
         redo
-        binding.break
       end
 
       next unless player.having_points > 21 # 合計が21を超えたらループを抜けて終了
@@ -354,6 +351,7 @@ end
 
 class Dealer < Person
   def initialize
+    super
     @name = 'ディーラー'
   end
 end
