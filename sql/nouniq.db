@@ -1,0 +1,7 @@
+SELECT DISTINCT emp_no
+FROM salaries
+WHERE salary > 2 * (
+    SELECT AVG(salary)
+    FROM salaries
+  )
+LIMIT 10

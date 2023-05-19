@@ -1,0 +1,4 @@
+SET profiling = 1
+SELECT *
+FROM `salaries`
+WHERE salary = 70575 SHOW PROFILES

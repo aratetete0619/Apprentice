@@ -1,0 +1,5 @@
+SELECT emp_no,
+  birth_date,
+  CONCAT(FLOOR(YEAR(birth_date) / 10) * 10, 's') AS decade
+FROM employees
+WHERE emp_no BETWEEN 10001 AND 10050

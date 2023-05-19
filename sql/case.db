@@ -1,0 +1,8 @@
+SELECT emp_no,
+  to_date,
+  CASE
+    WHEN to_date = '9999-01-01' THEN 'employed'
+    ELSE 'unemployed'
+  END as employment_status
+FROM dept_emp
+WHERE emp_no BETWEEN 10000 AND 10200
