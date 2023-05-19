@@ -1,0 +1,8 @@
+SELECT emp_no,
+  salary
+FROM salaries
+WHERE emp_no BETWEEN 10000 AND 10010
+  AND salary > (
+    SELECT AVG(salary)
+    FROM salaries
+  );

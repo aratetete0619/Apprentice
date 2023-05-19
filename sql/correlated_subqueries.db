@@ -1,0 +1,9 @@
+SELECT e1.gender,
+  e1.emp_no,
+  e1.birth_date
+FROM employees e1
+WHERE e1.birth_date = (
+    SELECT MIN(e2.birth_date)
+    FROM employees e2
+    WHERE e1.gender = e2.gender
+  )
