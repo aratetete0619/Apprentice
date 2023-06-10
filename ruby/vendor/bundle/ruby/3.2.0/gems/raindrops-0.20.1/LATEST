@@ -1,0 +1,9 @@
+=== raindrops 0.20.1 / 2023-02-25 00:19 UTC
+
+  Stats for SO_REUSEPORT sockets are now handled properly.
+  Thanks to Dale Hamel for the patches.
+
+  Dale Hamel (2):
+        Fix queue stats for sockets with SO_REUSEPORT
+        Fix off by one error in test
+
